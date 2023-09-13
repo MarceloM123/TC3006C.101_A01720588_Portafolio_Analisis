@@ -1,0 +1,89 @@
+---
+title: "Tarea1"
+output: html_document
+date: "2023-08-17"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Problema 7
+```{r}
+media = 100
+desv = 7
+
+# Calcular P(X < 87)
+x1 = 87
+prob1 = pnorm(x1, mean = media, sd = desv)
+prob1
+
+# Calcular P(X > 87)
+x2 = 87
+prob2 = pnorm(x2, mean = media, sd = desv, lower.tail = FALSE)
+prob2
+
+# Calcular P(87 < X < 110)
+x3_lower = 87
+x3_upper = 110
+prob3_lower = pnorm(x3_lower, mean = media, sd = desv)
+prob3_upper = pnorm(x3_upper, mean = media, sd = desv)
+prob3 = prob3_upper - prob3_lower
+prob3
+```
+Problema 8
+```{r}
+gl = 10
+# Calcular P(X < 0.5)
+x1 = 0.5
+prob1 = pt(x1, df = gl)
+prob1
+
+# Calcular P(X > 1.5)
+x2 = 1.5
+prob2 = pt(x2, df = gl, lower.tail = FALSE)
+prob2
+
+# La t que sólo el 5% son inferiores a ella.  (t = -1.812461)
+p = 0.05
+t = qt(p, df = gl)
+t
+```
+Problema 9
+```{r}
+gl = 6
+# Calcular P(X2 < 3)
+x1 = 3
+prob1 = pchisq(x1, df = gl)
+prob1
+
+# Calcular P(X2 > 2)
+x2 = 2
+prob2 = pchisq(x2, df = gl, lower.tail = FALSE)
+prob2
+
+# El valor x de chi que sólo el 5% de los demás valores de x es mayor a ese valor ( Resp. 12.59159)
+p = 0.05
+x = qchisq(1 - p, df = gl)
+x
+```
+Problema 10
+```{r}
+v1 = 8
+v2 = 10
+
+# Calcular P(X < 2)
+x1 = 2
+prob1 = pf(x1, df1 = v1, df2 = v2)
+prob1
+
+# Calcular P(X < 3)
+x2 = 3
+prob2 = pf(x2, df1 = v1, df2 = v2, lower.tail = FALSE)
+prob2
+
+# El valor x que sólo el 25% de los demás valores es inferior a él.
+# 'qf' devuelve el valor crítico en la distribución F para un nivel de probabilidad dado
+p = 0.25
+x = qf(p, df1 = v1, df2 = v2)
+x
+```

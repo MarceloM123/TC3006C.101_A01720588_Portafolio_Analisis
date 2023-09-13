@@ -1,0 +1,196 @@
+---
+title: "Tarea3"
+output:
+  word_document: default
+  html_document: default
+date: "2023-08-18"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(moments)
+library(MASS)
+library(e1071)
+library(nortest)
+library(VGAM)
+
+M=read.csv("mc-donalds-menu-1.csv") #leer la base de datos
+fat = M$Total.Fat
+print(fat)
+```
+
+## 1. Utiliza la transformación Box-Cox. Utiliza el modelo exacto y el aproximado de acuerdo con las sugerencias de Box y Cox para la transformación
+
+```{r}
+bc = boxcox((fat+1)~1)
+lambda = bc$x[which.max(bc$y)]
+cat("Lambda:", lambda, "\n")
+
+fat1 = sqrt(fat+1)
+fat2 = (((fat + 1)^lambda) - 1) / lambda
+```
+
+## 2. Escribe las ecuaciones de los modelos encontrados.
+
+$fat1 = \sqrt{x + 1}$\
+$fat2 = \frac{(x + 1)^{0.3} - 1}{0.3l}$
+
+## 3. Analiza la normalidad de las transformaciones obtenidas con los datos originales. Utiliza como argumento de normalidad:
+
+-   Compara las medidas: Mínimo, máximo, media, mediana, cuartil 1 y cuartil 3, sesgo y curtosis.
+-   Obten el histograma de los 2 modelos obtenidos (exacto y aproximado) y los datos originales.
+-   Realiza la prueba de normalidad de Anderson-Darling o de Jarque Bera para los datos transformados y los originales
+
+```{r}
+# Fat
+D = ad.test(fat)
+summary(fat)
+cat("Curtosis:", kurtosis(fat), "\n")
+cat("Sesgo:", skewness(fat), "\n")
+cat("P-value:", D$p.value, "\n")
+```
+
+```{r}
+# Fat1
+D1 = ad.test(fat1)
+summary(fat1)
+cat("Curtosis:", kurtosis(fat1), "\n")
+cat("Sesgo:", skewness(fat1), "\n")
+cat("P-value:", D1$p.value, "\n")
+```
+
+```{r}
+# Fat2
+D2 = ad.test(fat2)
+summary(fat2)
+cat("Curtosis:", kurtosis(fat2), "\n")
+cat("Sesgo:", skewness(fat2), "\n")
+cat("P-value:", D2$p.value, "\n")
+```
+
+```{r}
+# Histogramas de las variables
+par(mfrow = c(3, 1))
+hist(fat, col = 0, main = "Histograma de Fat")
+hist(fat1, col = 0, main = "Histograma de Fat1")
+hist(fat2, col = 0, main = "Histograma de Fat2")
+```
+
+## 4. Detecta anomalías y corrige tu base de datos (datos atípicos, ceros anámalos, etc).
+
+```{r}
+# Quitaremos esos datos que son igual a 0, estos pueden incluir bebidas dieteticas o agua
+fatWoZeros = fat[fat > 0]
+bcWoZeros = boxcox((fatWoZeros+1)~1)
+lambdaWoZeros = bcWoZeros$x[which.max(bcWoZeros$y)]
+
+cat("Lambda sin ceros:", lambdaWoZeros, "\n")
+
+par(mfrow = c(2, 1))
+boxplot(fat, horizontal = TRUE, col = "pink", main = "Grasas de los alimentos en McDonald's")
+boxplot(fatWoZeros, horizontal = TRUE, col = "green", main = "Grasas de los alimentos en McDonald's sin ceros")
+```
+  
+```{r}
+fat1WoZeros = sqrt(fatWoZeros + 1)
+fat2WoZeros = (((fatWoZeros + 1) ^ lambdaWoZeros) - 1) / lambdaWoZeros
+
+par(mfrow = c(3, 1))
+hist(fatWoZeros, col = 0, main = "Histograma de Grasas sin ceros")
+hist(fat1WoZeros, col = 0, main = "Histograma de Grasas 1 sin ceros")
+hist(fat2WoZeros, col = 0, main = "Histograma de Grasas 2 sin ceros")
+```
+  
+##5. Utiliza la transformación de Yeo Johnson y encuentra el valor de lambda que maximiza el valor p de la prueba de normalidad que hayas utilizado (Anderson-Darling o Jarque Bera).
+
+```{r}
+fatYeo = yeo.johnson(fatWoZeros, lambda = lambda)
+
+lp = seq(0, 1, 0.001)
+nlp = length(lp)
+n = length(fatWoZeros)
+D3 = matrix(as.numeric(NA), ncol = 2, nrow = nlp)
+d = NA
+for (i in 1:nlp) {
+  d = yeo.johnson(fatWoZeros, lambda = lp[i])
+  p = ad.test(d)
+  D3[i, ] = c(lp[i], p$p.value)
+}
+
+N = as.data.frame(D3)
+plot(
+  N$V1,
+  N$V2,
+  type = "l",
+  col = "darkred",
+  lwd = 3 ,
+  xlab = "Lambda",
+  ylab = "Valor p (Normalidad)"
+)
+
+# El valor de lambda que maximisa valor-p
+G = data.frame(subset(N,N$V2==max(N$V2)))
+lambdaYeo = G$V1
+cat("Lambda de Yeo:", lambdaYeo, "\n")
+
+fat3 = (((fatYeo + 1)^lambdaYeo) - 1) / lambdaYeo
+```
+
+## 6. Escribe la ecuación del modelo encontrado.
+
+$fat3 = \frac{(x + 1)^{0.49} - 1}{0.49}$
+  
+## 7. Analiza la normalidad de las transformaciones obtenidas con los datos originales. Utiliza como argumento de normalidad:
+- Compara las medidas: Mínimo, máximo, media, mediana, cuartil 1 y cuartil 3, sesgo y curtosis.
+- Obten el histograma de los 2 modelos obtenidos (exacto y aproximado) y los datos originales.
+- Realiza la prueba de normalidad de Anderson-Darling para los datos transformados y los originales.
+  
+```{r}
+# Fat
+D = ad.test(fat)
+summary(fat)
+cat("Curtosis:", kurtosis(fat), "\n")
+cat("Sesgo:", skewness(fat), "\n")
+cat("P-value:", D$p.value, "\n")
+```
+
+```{r}
+# Fat 3
+D3 = ad.test(fat3)
+summary(fat3)
+cat("Curtosis:", kurtosis(fat3), "\n")
+cat("Sesgo:", skewness(fat3), "\n")
+cat("P-value:", D3$p.value, "\n")
+```
+
+```{r}
+# Histogramas de las variables
+par(mfrow = c(2, 1))
+hist(fat, col = 0, main = "Histograma de Fat")
+hist(fat3, col = 0, main = "Histograma de Fat 3")
+```
+
+## 8.  Define la mejor transformación de los datos de acuerdo a las características de los modelos que encontraste.
+Ambos modelos funcionan bien para cumplir con el supuesto de normalidad, no obstante, tomando en cuenta que ninguna de las variables tiene valores negativos, el modelo de BoxCox se ajusta mejor para transformar los datos que el de Yeo Johsnon de acuerdo a sus características. 
+
+## 9.  Concluye sobre las ventajas y desventajes de los modelos de Box Cox y de Yeo Johnson.
+
+Uno de los beneficios de utilizar la stransformaciones de Box Cox y Yeo Johnson es que los datos son más sencillos de utilizar ya que los datos son más fáciles de comparar. Además, utilizar este tipos de transformaciones ayuda a mejorar la calidad de los datos y evitar impurezas en los mismos como lo son datos nulos y duplicados. 
+
+Algunas desventajas que tienen estas transformaciones es que BoxCox no funciona adecuadamente con datos negativos ni con datos discretos lo cual limita las capacidades de uno para utilizar estas herramientas. 
+
+## 10. Analiza las diferencias entre la transformación y el escalamiento de los datos:
+  
+    - Escribe al menos 3 diferencias entre lo que es la transformación y el escalamiento de los datos
+    - Indica cuándo es necesario utilizar cada uno
+
+
+Una de las diferencias entre la transformación y el escalamiento de los datos es que la transformación tiene como objetivo que se cumplan supuestos como lo es la normalidad y el escalamiento busca ajustar los valores a un determinado rango. 
+
+Otra diferencia es que la transformación puede cambiar la distribución de datos mientrsas que el escalamiento sólo puede (como dice su nombre) cambiar la escala. 
+Finalmente, los métodos para realizar el escalamiento y las trasnformaciones son distintos. Para las tranformaciones se puede utilizar logaritmos, explonenciales y raíces cuadradas pero para el escalimiento se utilizan operaciones como la división para realizar el ajuste. 
+
+La transofmración se debe utilizar cuando se necesita que los datos se ajusten a los supuestos de un modelo. El escalamiento se debe utilizar primordialmente cuando se quiere realizar una comparación de datos que están en diferentes escalas y que, por su rango, no son comparables. 
